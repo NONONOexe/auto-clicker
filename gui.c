@@ -5,12 +5,16 @@
 #define ID_BTN_TOGGLE 1
 #define ID_TIMER      1
 #define ID_HOTKEY     1
+#define ID_CHK_HOLD   2
 #define DEFAULT_MS    1000
 #define MIN_MS        100
 
-static BOOL g_running = FALSE;
 static HWND g_btn;
 static HWND g_edit;
+static HWND g_chk;
+
+static BOOL g_running = FALSE;
+static BOOL g_hold_active = FALSE;
 
 static void do_click(void) {
     INPUT in[2] = {0};
@@ -21,22 +25,41 @@ static void do_click(void) {
     SendInput(2, in, sizeof(INPUT));
 }
 
+static void send_mouse(DWORD flags) {
+    INPUT in = {0};
+    in.type = INPUT_MOUSE;
+    in.mi.dwFlags = flags;
+    SendInput(1, &in, sizeof(INPUT));
+}
+
 static void toggle(HWND hwnd) {
     if (g_running) {
-        KillTimer(hwnd, ID_TIMER);
+        if (g_hold_active) {
+            send_mouse(MOUSEEVENTF_LEFTUP);
+            g_hold_active = FALSE;
+        } else {
+            KillTimer(hwnd, ID_TIMER);
+        }
         SetWindowText(g_btn, "Start (F6)");
         EnableWindow(g_edit, TRUE);
+        EnableWindow(g_chk, TRUE);
     } else {
-        char buf[16];
-        GetWindowText(g_edit, buf, sizeof(buf));
-        int ms = atoi(buf);
-        if (ms < MIN_MS) {
-            MessageBox(hwnd, "Interval must be at least 100 ms.", "Error", MB_OK);
-            return;
+        g_hold_active = (SendMessage(g_chk, BM_GETCHECK, 0, 0) == BST_CHECKED);
+        if (g_hold_active) {
+            send_mouse(MOUSEEVENTF_LEFTDOWN);
+        } else {            
+            char buf[16];
+            GetWindowText(g_edit, buf, sizeof(buf));
+            int ms = atoi(buf);
+            if (ms < MIN_MS) {
+                MessageBox(hwnd, "Interval is too short.", "Error", MB_OK);
+                return;
+            }
+            SetTimer(hwnd, ID_TIMER, ms, NULL);
         }
-        SetTimer(hwnd, ID_TIMER, ms, NULL);
         SetWindowText(g_btn, "Stop (F6)");
         EnableWindow(g_edit, FALSE);
+        EnableWindow(g_chk, FALSE);
     }
     g_running = !g_running;
 }
@@ -54,24 +77,30 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
                      20, 65, 100, 20,            //
                      hwnd, NULL,                 //
                      ((LPCREATESTRUCT)lp)->hInstance, NULL);
-
-        char buf[16];
-        snprintf(buf, sizeof(buf), "%d", DEFAULT_MS);
-
-        // clang-format off
-        g_edit = CreateWindow("EDIT", buf,
-                              WS_CHILD | WS_VISIBLE | WS_BORDER | ES_NUMBER,
-                              125, 62, 55, 24,
-                              hwnd, NULL,
-                              ((LPCREATESTRUCT)lp)->hInstance, NULL);
-        // clang-format on
-
-        if (!g_edit) {
-            MessageBox(hwnd, "Failed to create edit box.", "Error", MB_OK);
-        }
         if (!RegisterHotKey(hwnd, ID_HOTKEY, 0, VK_F6)) {
             MessageBox(hwnd, "F6 could not be registered.", "Error", MB_OK);
         }
+
+        char buf[16];
+        snprintf(buf, sizeof(buf), "%d", DEFAULT_MS);
+        g_edit = CreateWindow("EDIT", buf,                                   //
+                              WS_CHILD | WS_VISIBLE | WS_BORDER | ES_NUMBER, //
+                              125, 62, 55, 24,                               //
+                              hwnd, NULL,                                    //
+                              ((LPCREATESTRUCT)lp)->hInstance, NULL);
+        if (!g_edit) {
+            MessageBox(hwnd, "Failed to create edit box.", "Error", MB_OK);
+        }
+
+        g_chk = CreateWindow("BUTTON", "Hold (press and keep)",       //
+                             WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX, //
+                             20, 100, 200, 20,                        //
+                             hwnd, (HMENU)ID_CHK_HOLD,                //
+                             ((LPCREATESTRUCT)lp)->hInstance, NULL);
+        if (!g_chk) {
+            MessageBox(hwnd, "Failed to create checkbox.", "Error", MB_OK);
+        }
+
         return 0;
     case WM_COMMAND:
         if (LOWORD(wp) == ID_BTN_TOGGLE) {
@@ -89,6 +118,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         }
         return 0;
     case WM_DESTROY:
+        if (g_hold_active) {
+            send_mouse(MOUSEEVENTF_LEFTUP);
+        }
         KillTimer(hwnd, ID_TIMER);
         UnregisterHotKey(hwnd, ID_HOTKEY);
         PostQuitMessage(0);
