@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <windows.h>
+#include "click.h"
 
 #define ID_BTN_TOGGLE 1
 #define ID_TIMER      1
@@ -15,22 +16,6 @@ static HWND g_chk;
 
 static BOOL g_running = FALSE;
 static BOOL g_hold_active = FALSE;
-
-static void do_click(void) {
-    INPUT in[2] = {0};
-    in[0].type = INPUT_MOUSE;
-    in[0].mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
-    in[1].type = INPUT_MOUSE;
-    in[1].mi.dwFlags = MOUSEEVENTF_LEFTUP;
-    SendInput(2, in, sizeof(INPUT));
-}
-
-static void send_mouse(DWORD flags) {
-    INPUT in = {0};
-    in.type = INPUT_MOUSE;
-    in.mi.dwFlags = flags;
-    SendInput(1, &in, sizeof(INPUT));
-}
 
 static void toggle(HWND hwnd) {
     if (g_running) {
