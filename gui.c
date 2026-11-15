@@ -2,6 +2,8 @@
 #define _UNICODE
 
 #include "click.h"
+#include "lang.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <wchar.h>
@@ -24,58 +26,6 @@
 #define DEFAULT_MS 1000
 #define MIN_MS     100
 #define BUF_LEN    16
-
-typedef enum { LANG_EN, LANG_JA, LANG_COUNT } Lang;
-
-static Lang g_lang = LANG_EN;
-
-enum {
-    S_BTN_START,
-    S_BTN_STOP,
-    S_LABEL_INTERVAL,
-    S_LABEL_HOLD,
-    S_TITLE_ERROR,
-    S_ERR_ALREADY_RUNNING,
-    S_ERR_INTERVAL_TOO_SHORT,
-    S_ERR_HOTKEY_ALREADY_REGISTERED,
-    S_COUNT
-};
-
-static const wchar_t *STR[LANG_COUNT][S_COUNT] = {
-    [LANG_EN] =
-        {
-            [S_BTN_START] = L"Start (F6)",
-            [S_BTN_STOP] = L"Stop (F6)",
-            [S_LABEL_INTERVAL] = L"Interval (ms):",
-            [S_LABEL_HOLD] = L"Hold the click",
-            [S_TITLE_ERROR] = L"Error",
-            [S_ERR_ALREADY_RUNNING] = L"Auto Clicker is already running.",
-            [S_ERR_INTERVAL_TOO_SHORT] = L"Please set the click interval to 100 ms or more.",
-            [S_ERR_HOTKEY_ALREADY_REGISTERED] = L"F6 could not be registered.",
-        },
-    [LANG_JA] =
-        {
-            [S_BTN_START] = L"開始（F6）",
-            [S_BTN_STOP] = L"停止（F6）",
-            [S_LABEL_INTERVAL] = L"クリックの間隔（ミリ秒）",
-            [S_LABEL_HOLD] = L"クリックの長押し",
-            [S_TITLE_ERROR] = L"エラー",
-            [S_ERR_ALREADY_RUNNING] = L"Auto Clickerはすでに起動しています。",
-            [S_ERR_INTERVAL_TOO_SHORT] = L"クリックの間隔は100ミリ秒以上にしてください。",
-            [S_ERR_HOTKEY_ALREADY_REGISTERED] = L"F6をホットキーに設定できませんでした。",
-        },
-};
-
-static const wchar_t *LANG_CODE[LANG_COUNT] = {
-    [LANG_EN] = L"en",
-    [LANG_JA] = L"ja",
-};
-
-static const wchar_t *tr(int id) { return STR[g_lang][id]; }
-
-static Lang detect_language(void) {
-    return PRIMARYLANGID(GetUserDefaultUILanguage()) == LANG_JAPANESE ? LANG_JA : LANG_EN;
-}
 
 static void get_ini_path(wchar_t *out, size_t len) {
     GetModuleFileName(NULL, out, (DWORD)len);
