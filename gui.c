@@ -8,6 +8,7 @@
 
 #define CLASS_NAME L"AutoClickerWnd"
 #define APP_TITLE  L"Auto Clicker"
+#define MUTEX_NAME L"Local\\AutoClickerMutex"
 
 #define ID_BTN_TOGGLE 1
 #define ID_TIMER      1
@@ -29,6 +30,7 @@ enum {
     S_LABEL_INTERVAL,
     S_LABEL_HOLD,
     S_TITLE_ERROR,
+    ERROR_ALREADY_RUNNING,
     S_ERR_INTERVAL_TOO_SHORT,
     S_ERR_HOTKEY_ALREADY_REGISTERED,
     S_COUNT
@@ -42,6 +44,7 @@ static const wchar_t *STR[LANG_COUNT][S_COUNT] = {
             [S_LABEL_INTERVAL] = L"Interval (ms):",
             [S_LABEL_HOLD] = L"Hold the click",
             [S_TITLE_ERROR] = L"Error",
+            [ERROR_ALREADY_RUNNING] = L"Auto Clicker is already running.",
             [S_ERR_INTERVAL_TOO_SHORT] = L"Please set the click interval to 100 ms or more.",
             [S_ERR_HOTKEY_ALREADY_REGISTERED] = L"F6 could not be registered.",
         },
@@ -52,6 +55,7 @@ static const wchar_t *STR[LANG_COUNT][S_COUNT] = {
             [S_LABEL_INTERVAL] = L"クリックの間隔（ミリ秒）",
             [S_LABEL_HOLD] = L"クリックの長押し",
             [S_TITLE_ERROR] = L"エラー",
+            [ERROR_ALREADY_RUNNING] = L"Auto Clickerはすでに起動しています。",
             [S_ERR_INTERVAL_TOO_SHORT] = L"クリックの間隔は100ミリ秒以上にしてください。",
             [S_ERR_HOTKEY_ALREADY_REGISTERED] = L"F6をホットキーに設定できませんでした。",
         },
@@ -186,6 +190,14 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 }
 
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR cmd, int show) {
+    g_lang = detect_language();
+
+    HANDLE hMutex = CreateMutex(NULL, FALSE, MUTEX_NAME);
+    if (hMutex != NULL && GetLastError() == ERROR_ALREADY_EXISTS) {
+        MessageBox(NULL, tr(ERROR_ALREADY_RUNNING), tr(S_TITLE_ERROR), MB_OK);
+        return 0;
+    }
+
     WNDCLASS wc = {0};
     wc.lpfnWndProc = WndProc;
     wc.hInstance = hInst;
@@ -193,8 +205,6 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR cmd, int show) {
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
     wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
     RegisterClass(&wc);
-
-    g_lang = detect_language();
 
     HWND hwnd = CreateWindow(CLASS_NAME, APP_TITLE,                                  //
                              WS_OVERLAPPEDWINDOW & ~WS_MAXIMIZEBOX & ~WS_THICKFRAME, //
