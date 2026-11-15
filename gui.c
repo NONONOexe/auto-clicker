@@ -3,72 +3,20 @@
 
 #include "click.h"
 #include "lang.h"
-
+#include "settings.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <wchar.h>
 #include <windows.h>
 
-#define CLASS_NAME L"AutoClickerWnd"
-#define APP_TITLE  L"Auto Clicker"
-#define MUTEX_NAME L"Local\\AutoClickerMutex"
-
-#define INI_SECTION      L"Settings"
-#define INI_KEY_LANGUAGE L"Language"
-#define INI_KEY_INTERVAL L"Interval"
-
+#define CLASS_NAME    L"AutoClickerWnd"
+#define APP_TITLE     L"Auto Clicker"
+#define MUTEX_NAME    L"Local\\AutoClickerMutex"
 #define ID_BTN_TOGGLE 1
 #define ID_TIMER      1
 #define ID_HOTKEY     1
 #define ID_CHK_HOLD   2
 #define ID_BTN_LANG   3
-
-#define DEFAULT_MS 1000
-#define MIN_MS     100
-#define BUF_LEN    16
-
-static void get_ini_path(wchar_t *out, size_t len) {
-    GetModuleFileName(NULL, out, (DWORD)len);
-    wchar_t *dot = wcsrchr(out, L'.');
-    if (dot) {
-        wcscpy(dot, L".ini");
-    }
-}
-
-static BOOL load_language(Lang *out) {
-    wchar_t buf[BUF_LEN];
-    wchar_t path[MAX_PATH];
-    get_ini_path(path, MAX_PATH);
-    GetPrivateProfileString(INI_SECTION, INI_KEY_LANGUAGE, L"", buf, BUF_LEN, path);
-    for (int i = 0; i < LANG_COUNT; i++) {
-        if (wcscmp(buf, LANG_CODE[i]) == 0) {
-            *out = (Lang)i;
-            return TRUE;
-        }
-    }
-    return FALSE;
-}
-
-static void save_language(void) {
-    wchar_t path[MAX_PATH];
-    get_ini_path(path, MAX_PATH);
-    WritePrivateProfileString(INI_SECTION, INI_KEY_LANGUAGE, LANG_CODE[g_lang], path);
-}
-
-static int load_interval(void) {
-    wchar_t path[MAX_PATH];
-    get_ini_path(path, MAX_PATH);
-    int ms = (int)GetPrivateProfileInt(INI_SECTION, INI_KEY_INTERVAL, DEFAULT_MS, path);
-    return ms < MIN_MS ? DEFAULT_MS : ms;
-}
-
-static void save_interval(int ms) {
-    wchar_t buf[BUF_LEN];
-    wchar_t path[MAX_PATH];
-    get_ini_path(path, MAX_PATH);
-    _snwprintf(buf, BUF_LEN, L"%d", ms);
-    WritePrivateProfileString(INI_SECTION, INI_KEY_INTERVAL, buf, path);
-}
+#define BUF_LEN       16
 
 static HWND g_btn;
 static HWND g_label;
@@ -92,10 +40,10 @@ static int read_interval(void) {
 }
 
 static void save_settings(void) {
-    save_language();
+    save_language(g_lang);
     int ms = read_interval();
     if (ms >= MIN_MS) {
-      save_interval(ms);
+        save_interval(ms);
     }
 }
 
