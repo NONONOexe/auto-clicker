@@ -1,25 +1,30 @@
-CC      = gcc
-CFLAGS  = -Wall
-LDFLAGS = -mwindows
+CC       = gcc
+CFLAGS   = -Wall
+LDFLAGS  = -mwindows
 
-TARGET  = autoclicker.exe
+TARGET   = autoclicker.exe
 
-SRCS    = gui.c click.c lang.c settings.c
-OBJS    = $(SRCS:.c=.o)
-DEPS    = $(OBJS:.o=.d)
+SRCS     = gui.c click.c lang.c settings.c
+BUILDDIR = build
+OBJS     = $(SRCS:%.c=$(BUILDDIR)/%.o)
+DEPS     = $(OBJS:.o=.d)
 
 # Main target
-$(TARGET): $(SRCS)
-	$(CC) $(CFLAGS) $(SRCS) -o $(TARGET) $(LDFLAGS)
+$(TARGET): $(OBJS)
+	$(CC) $(OBJS) -o $(TARGET) $(LDFLAGS)
 
 # Compile source files
-%.o: %.c
+$(BUILDDIR)/%.o: %.c | $(BUILDDIR)
 	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
 
+$(BUILDDIR):
+	mkdir $(BUILDDIR)
+
 # Include dependency files
--include $(OBJS:.o=.d)
+-include $(DEPS)
 
 # Clean
 .PHONY: clean
 clean:
-	-del /Q *.o *.d $(TARGET) 2>NUL
+	-rmdir /S /Q $(BUILDDIR) 2>NUL
+	-del /Q $(TARGET) 2>NUL
