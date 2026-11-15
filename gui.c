@@ -1,7 +1,10 @@
+#define UNICODE
+#define _UNICODE
+
+#include "click.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <windows.h>
-#include "click.h"
 
 #define ID_BTN_TOGGLE 1
 #define ID_TIMER      1
@@ -25,24 +28,24 @@ static void toggle(HWND hwnd) {
         } else {
             KillTimer(hwnd, ID_TIMER);
         }
-        SetWindowText(g_btn, "Start (F6)");
+        SetWindowText(g_btn, L"Start (F6)");
         EnableWindow(g_edit, TRUE);
         EnableWindow(g_chk, TRUE);
     } else {
         g_hold_active = (SendMessage(g_chk, BM_GETCHECK, 0, 0) == BST_CHECKED);
         if (g_hold_active) {
             send_mouse(MOUSEEVENTF_LEFTDOWN);
-        } else {            
-            char buf[16];
-            GetWindowText(g_edit, buf, sizeof(buf));
-            int ms = atoi(buf);
+        } else {
+            wchar_t buf[16];
+            GetWindowText(g_edit, buf, 16);
+            int ms = _wtoi(buf);
             if (ms < MIN_MS) {
-                MessageBox(hwnd, "Interval is too short.", "Error", MB_OK);
+                MessageBox(hwnd, L"Interval is too short.", L"Error", MB_OK);
                 return;
             }
             SetTimer(hwnd, ID_TIMER, ms, NULL);
         }
-        SetWindowText(g_btn, "Stop (F6)");
+        SetWindowText(g_btn, L"Stop (F6)");
         EnableWindow(g_edit, FALSE);
         EnableWindow(g_chk, FALSE);
     }
@@ -52,38 +55,38 @@ static void toggle(HWND hwnd) {
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     switch (msg) {
     case WM_CREATE:
-        g_btn = CreateWindow("Button", "Start (F6)",                //
+        g_btn = CreateWindow(L"Button", L"Start (F6)",              //
                              WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON, //
                              20, 20, 160, 30,                       //
                              hwnd, (HMENU)ID_BTN_TOGGLE,            //
                              ((LPCREATESTRUCT)lp)->hInstance, NULL);
-        CreateWindow("STATIC", "Interval (ms):", //
-                     WS_CHILD | WS_VISIBLE,      //
-                     20, 65, 100, 20,            //
-                     hwnd, NULL,                 //
+        CreateWindow(L"STATIC", L"Interval (ms):", //
+                     WS_CHILD | WS_VISIBLE,        //
+                     20, 65, 100, 20,              //
+                     hwnd, NULL,                   //
                      ((LPCREATESTRUCT)lp)->hInstance, NULL);
         if (!RegisterHotKey(hwnd, ID_HOTKEY, 0, VK_F6)) {
-            MessageBox(hwnd, "F6 could not be registered.", "Error", MB_OK);
+            MessageBox(hwnd, L"F6 could not be registered.", L"Error", MB_OK);
         }
 
-        char buf[16];
-        snprintf(buf, sizeof(buf), "%d", DEFAULT_MS);
-        g_edit = CreateWindow("EDIT", buf,                                   //
+        wchar_t buf[16];
+        _snwprintf(buf, 16, L"%d", DEFAULT_MS);
+        g_edit = CreateWindow(L"EDIT", buf,                                  //
                               WS_CHILD | WS_VISIBLE | WS_BORDER | ES_NUMBER, //
                               125, 62, 55, 24,                               //
                               hwnd, NULL,                                    //
                               ((LPCREATESTRUCT)lp)->hInstance, NULL);
         if (!g_edit) {
-            MessageBox(hwnd, "Failed to create edit box.", "Error", MB_OK);
+            MessageBox(hwnd, L"Failed to create edit box.", L"Error", MB_OK);
         }
 
-        g_chk = CreateWindow("BUTTON", "Hold (press and keep)",       //
+        g_chk = CreateWindow(L"BUTTON", L"Hold (press and keep)",     //
                              WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX, //
                              20, 100, 200, 20,                        //
                              hwnd, (HMENU)ID_CHK_HOLD,                //
                              ((LPCREATESTRUCT)lp)->hInstance, NULL);
         if (!g_chk) {
-            MessageBox(hwnd, "Failed to create checkbox.", "Error", MB_OK);
+            MessageBox(hwnd, L"Failed to create checkbox.", L"Error", MB_OK);
         }
 
         return 0;
@@ -118,12 +121,12 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR cmd, int show) {
     WNDCLASS wc = {0};
     wc.lpfnWndProc = WndProc;
     wc.hInstance = hInst;
-    wc.lpszClassName = "AutoClickerWnd";
+    wc.lpszClassName = L"AutoClickerWnd";
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
     wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
     RegisterClass(&wc);
 
-    HWND hwnd = CreateWindow("AutoClickerWnd", "Auto Clicker",                       //
+    HWND hwnd = CreateWindow(L"AutoClickerWnd", L"Auto Clicker",                     //
                              WS_OVERLAPPEDWINDOW & ~WS_MAXIMIZEBOX & ~WS_THICKFRAME, //
                              CW_USEDEFAULT, CW_USEDEFAULT,                           //
                              320, 200, NULL, NULL, hInst, NULL);
