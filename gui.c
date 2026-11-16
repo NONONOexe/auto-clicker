@@ -39,12 +39,13 @@ static int read_interval(void) {
     return _wtoi(buf);
 }
 
+static BOOL read_hold(void) { return (SendMessage(g_chk, BM_GETCHECK, 0, 0) == BST_CHECKED); }
+
 static void save_settings(void) {
     save_language(g_lang);
     int ms = read_interval();
-    if (ms >= MIN_MS) {
-        save_interval(ms);
-    }
+    save_interval(ms < MIN_MS ? DEFAULT_MS : ms);
+    save_hold(read_hold());
 }
 
 static void toggle(HWND hwnd) {
@@ -59,7 +60,7 @@ static void toggle(HWND hwnd) {
         EnableWindow(g_edit, TRUE);
         EnableWindow(g_chk, TRUE);
     } else {
-        g_hold_active = (SendMessage(g_chk, BM_GETCHECK, 0, 0) == BST_CHECKED);
+        g_hold_active = read_hold();
         if (g_hold_active) {
             send_mouse(MOUSEEVENTF_LEFTDOWN);
         } else {
@@ -113,6 +114,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         if (!g_chk) {
             MessageBox(hwnd, L"Failed to create checkbox.", tr(S_TITLE_ERROR), MB_OK);
         }
+        SendMessage(g_chk, BM_SETCHECK, load_hold() ? BST_CHECKED : BST_UNCHECKED, 0);
 
         g_btn_lang = CreateWindow(L"BUTTON", L"English / 日本語",        //
                                   WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON, //
