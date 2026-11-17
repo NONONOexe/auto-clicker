@@ -133,49 +133,38 @@ static BYTE mod_to_hotkeyf(UINT mod) {
     return hotkeyf;
 }
 
+static HWND create_child(HWND parent, const wchar_t *cls, const wchar_t *text, DWORD style, int x,
+                         int y, int w, int h, int id) {
+    return CreateWindow(cls, text, WS_CHILD | WS_VISIBLE | style, x, y, w, h, parent,
+                        (HMENU)(INT_PTR)id, GetModuleHandle(NULL), NULL);
+}
+
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     switch (msg) {
     case WM_CREATE:
         INITCOMMONCONTROLSEX icc = {sizeof(icc), ICC_HOTKEY_CLASS};
         InitCommonControlsEx(&icc);
 
-        g_btn = CreateWindow(L"BUTTON", tr(S_BTN_START),            //
-                             WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON, //
-                             20, 20, 120, 30,                       //
-                             hwnd, (HMENU)ID_BTN_TOGGLE,            //
-                             ((LPCREATESTRUCT)lp)->hInstance, NULL);
-        g_label = CreateWindow(L"STATIC", tr(S_LABEL_INTERVAL), //
-                               WS_CHILD | WS_VISIBLE,           //
-                               20, 65, 200, 20,                 //
-                               hwnd, NULL,                      //
-                               ((LPCREATESTRUCT)lp)->hInstance, NULL);
+        g_btn = create_child(hwnd, L"BUTTON", tr(S_BTN_START), BS_PUSHBUTTON, 20, 20, 120, 30,
+                             ID_BTN_TOGGLE);
+        g_label = create_child(hwnd, L"STATIC", tr(S_LABEL_INTERVAL), 0, 20, 65, 200, 20, 0);
 
         wchar_t buf[BUF_LEN];
         _snwprintf(buf, BUF_LEN, L"%d", load_interval());
-        g_edit = CreateWindow(L"EDIT", buf,                                  //
-                              WS_CHILD | WS_VISIBLE | WS_BORDER | ES_NUMBER, //
-                              225, 62, 55, 24,                               //
-                              hwnd, NULL,                                    //
-                              ((LPCREATESTRUCT)lp)->hInstance, NULL);
+        g_edit = create_child(hwnd, L"EDIT", buf, WS_BORDER | ES_NUMBER, 225, 62, 55, 24, 0);
         if (!g_edit) {
             MessageBox(hwnd, L"Failed to create edit box.", tr(S_TITLE_ERROR), MB_OK);
         }
 
-        g_chk = CreateWindow(L"BUTTON", tr(S_LABEL_HOLD),             //
-                             WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX, //
-                             20, 100, 200, 20,                        //
-                             hwnd, (HMENU)ID_CHK_HOLD,                //
-                             ((LPCREATESTRUCT)lp)->hInstance, NULL);
+        g_chk = create_child(hwnd, L"BUTTON", tr(S_LABEL_HOLD), BS_AUTOCHECKBOX, 20, 100, 200, 20,
+                             ID_CHK_HOLD);
         if (!g_chk) {
             MessageBox(hwnd, L"Failed to create checkbox.", tr(S_TITLE_ERROR), MB_OK);
         }
         SendMessage(g_chk, BM_SETCHECK, load_hold() ? BST_CHECKED : BST_UNCHECKED, 0);
 
-        g_btn_lang = CreateWindow(L"BUTTON", L"English / 日本語",        //
-                                  WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON, //
-                                  150, 20, 130, 30,                      //
-                                  hwnd, (HMENU)ID_BTN_LANG,              //
-                                  ((LPCREATESTRUCT)lp)->hInstance, NULL);
+        g_btn_lang = create_child(hwnd, L"BUTTON", L"English / 日本語", BS_PUSHBUTTON, 150, 20, 130,
+                                  30, ID_BTN_LANG);
 
         UINT mod = load_hotkey_mod();
         UINT vk = load_hotkey_vk();
@@ -183,22 +172,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             MessageBox(hwnd, tr(S_ERR_HOTKEY_ALREADY_REGISTERED), tr(S_TITLE_ERROR), MB_OK);
         }
 
-        g_label_hotkey = CreateWindow(L"STATIC", tr(S_LABEL_HOTKEY), //
-                                      WS_CHILD | WS_VISIBLE,         //
-                                      20, 135, 200, 20,              //
-                                      hwnd, NULL,                    //
-                                      ((LPCREATESTRUCT)lp)->hInstance, NULL);
-        g_hotkey_edit = CreateWindow(HOTKEY_CLASS, L"",                  //
-                                     WS_CHILD | WS_VISIBLE | WS_TABSTOP, //
-                                     20, 155, 200, 30,                   //
-                                     hwnd, (HMENU)ID_HOTKEY_EDIT,        //
-                                     ((LPCREATESTRUCT)lp)->hInstance, NULL);
+        g_label_hotkey = create_child(hwnd, L"STATIC", tr(S_LABEL_HOTKEY), 0, 20, 135, 200, 20, 0);
+        g_hotkey_edit =
+            create_child(hwnd, HOTKEY_CLASS, L"", WS_TABSTOP, 20, 155, 200, 30, ID_HOTKEY_EDIT);
         SendMessage(g_hotkey_edit, HKM_SETHOTKEY, MAKEWORD(vk, mod_to_hotkeyf(mod)), 0);
-        g_btn_hotkey_apply = CreateWindow(L"BUTTON", tr(S_BTN_HOTKEY_APPLY),     //
-                                          WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON, //
-                                          230, 155, 50, 30,                      //
-                                          hwnd, (HMENU)ID_BTN_HOTKEY_APPLY,      //
-                                          ((LPCREATESTRUCT)lp)->hInstance, NULL);
+        g_btn_hotkey_apply = create_child(hwnd, L"BUTTON", tr(S_BTN_HOTKEY_APPLY), BS_PUSHBUTTON,
+                                          230, 155, 50, 30, ID_BTN_HOTKEY_APPLY);
 
         return 0;
     case WM_COMMAND:
