@@ -1,6 +1,6 @@
 CC       = gcc
 CFLAGS   = -Wall
-LDFLAGS  = -mwindows
+LDFLAGS  = -mwindows -lcomctl32
 
 TARGET   = autoclicker.exe
 
