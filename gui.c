@@ -32,6 +32,8 @@ static HWND g_btn_hotkey_apply;
 static BOOL g_running = FALSE;
 static BOOL g_hold_active = FALSE;
 
+static HFONT g_font = NULL;
+
 static UINT g_hotkey_mod = 0; // MOD_ALT / MOD_CONTROL / MOD_SHIFT
 static UINT g_hotkey_vk = VK_F6;
 
@@ -39,6 +41,8 @@ static void apply_language() {
     SetWindowText(g_btn, g_running ? tr(S_BTN_STOP) : tr(S_BTN_START));
     SetWindowText(g_label, tr(S_LABEL_INTERVAL));
     SetWindowText(g_chk, tr(S_LABEL_HOLD));
+    SetWindowText(g_label_hotkey, tr(S_LABEL_HOTKEY));
+    SetWindowText(g_btn_hotkey_apply, tr(S_BTN_HOTKEY_APPLY));
 }
 
 static int read_interval(void) {
@@ -48,6 +52,20 @@ static int read_interval(void) {
 }
 
 static BOOL read_hold(void) { return (SendMessage(g_chk, BM_GETCHECK, 0, 0) == BST_CHECKED); }
+
+static HFONT create_ui_font(void) {
+    NONCLIENTMETRICSW ncm = {0};
+    ncm.cbSize = sizeof(ncm);
+    if (!SystemParametersInfoW(SPI_GETNONCLIENTMETRICS, sizeof(ncm), &ncm, 0)) {
+        return NULL;
+    }
+    return CreateFontIndirectW(&ncm.lfMessageFont);
+}
+
+static BOOL CALLBACK set_font_proc(HWND hwnd, LPARAM lparam) {
+    SendMessageW(hwnd, WM_SETFONT, (WPARAM)lparam, TRUE);
+    return TRUE;
+}
 
 static void save_settings(void) {
     save_language(g_lang);
@@ -179,6 +197,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         g_btn_hotkey_apply = create_child(hwnd, L"BUTTON", tr(S_BTN_HOTKEY_APPLY), BS_PUSHBUTTON,
                                           230, 155, 50, 30, ID_BTN_HOTKEY_APPLY);
 
+        g_font = create_ui_font();
+        EnumChildWindows(hwnd, set_font_proc, (LPARAM)g_font);
+
         return 0;
     case WM_COMMAND:
         if (LOWORD(wp) == ID_BTN_TOGGLE) {
@@ -215,6 +236,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         KillTimer(hwnd, ID_TIMER);
         UnregisterHotKey(hwnd, ID_HOTKEY_TOGGLE);
         save_settings();
+        if (g_font != NULL) {
+            DeleteObject(g_font);
+            g_font = NULL;
+        }
         PostQuitMessage(0);
         return 0;
     }
