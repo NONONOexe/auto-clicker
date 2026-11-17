@@ -80,7 +80,7 @@ UINT load_hotkey_vk(void) {
 void save_hotkey_vk(UINT vk) {
     wchar_t buf[BUF_LEN];
     wchar_t path[MAX_PATH];
-    _snwprintf(buf, BUF_LEN, L"%d", vk);
+    _snwprintf(buf, BUF_LEN, L"%u", vk);
     get_ini_path(path, MAX_PATH);
     WritePrivateProfileString(INI_SECTION_HOTKEY, INI_KEY_HOTKEY_VK, buf, path);
 }
@@ -95,7 +95,7 @@ UINT load_hotkey_mod(void) {
 void save_hotkey_mod(UINT mod) {
     wchar_t buf[BUF_LEN];
     wchar_t path[MAX_PATH];
-    _snwprintf(buf, BUF_LEN, L"%d", mod);
+    _snwprintf(buf, BUF_LEN, L"%u", mod);
     get_ini_path(path, MAX_PATH);
     WritePrivateProfileString(INI_SECTION_HOTKEY, INI_KEY_HOTKEY_MOD, buf, path);
 }
