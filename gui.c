@@ -2,9 +2,10 @@
 #define _UNICODE
 
 #include "click.h"
+#include "clicker.h"
+#include "hotkey.h"
 #include "lang.h"
 #include "settings.h"
-#include "hotkey.h"
 #include <commctrl.h>
 #include <stdlib.h>
 #include <windows.h>
@@ -29,13 +30,10 @@ static HWND g_label_hotkey;
 static HWND g_hotkey_edit;
 static HWND g_btn_hotkey_apply;
 
-static BOOL g_running = FALSE;
-static BOOL g_hold_active = FALSE;
-
 static HFONT g_font = NULL;
 
 static void apply_language() {
-    SetWindowText(g_btn, g_running ? tr(S_BTN_STOP) : tr(S_BTN_START));
+    SetWindowText(g_btn, clicker_is_running() ? tr(S_BTN_STOP) : tr(S_BTN_START));
     SetWindowText(g_label, tr(S_LABEL_INTERVAL));
     SetWindowText(g_chk, tr(S_LABEL_HOLD));
     SetWindowText(g_label_hotkey, tr(S_LABEL_HOTKEY));
@@ -74,33 +72,34 @@ static void save_settings(void) {
 }
 
 static void toggle(HWND hwnd) {
-    if (g_running) {
-        if (g_hold_active) {
-            send_mouse(MOUSEEVENTF_LEFTUP);
-            g_hold_active = FALSE;
-        } else {
+    if (clicker_is_running()) {
+        switch (clicker_stop()) {
+        case CLICKER_STOP_OK_TIMER:
             KillTimer(hwnd, ID_TIMER);
+            break;
+        case CLICKER_STOP_OK_HOLD:
+            break;
         }
         SetWindowText(g_btn, tr(S_BTN_START));
         EnableWindow(g_edit, TRUE);
         EnableWindow(g_chk, TRUE);
     } else {
-        g_hold_active = read_hold();
-        if (g_hold_active) {
-            send_mouse(MOUSEEVENTF_LEFTDOWN);
-        } else {
-            int ms = read_interval();
-            if (ms < MIN_MS) {
-                MessageBox(hwnd, tr(S_ERR_INTERVAL_TOO_SHORT), tr(S_TITLE_ERROR), MB_OK);
-                return;
-            }
+        int ms = read_interval();
+        BOOL hold = read_hold();
+        switch (clicker_start(ms, hold)) {
+        case CLICKER_START_OK_TIMER:
             SetTimer(hwnd, ID_TIMER, ms, NULL);
+            break;
+        case CLICKER_START_OK_HOLD:
+            break;
+        case CLICKER_START_ERR_INTERVAL:
+            MessageBox(hwnd, tr(S_ERR_INTERVAL_TOO_SHORT), tr(S_TITLE_ERROR), MB_OK);
+            return;
         }
         SetWindowText(g_btn, tr(S_BTN_STOP));
         EnableWindow(g_edit, FALSE);
         EnableWindow(g_chk, FALSE);
     }
-    g_running = !g_running;
 }
 
 static HWND create_child(HWND parent, const wchar_t *cls, const wchar_t *text, DWORD style, int x,
@@ -182,9 +181,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         }
         return 0;
     case WM_DESTROY:
-        if (g_hold_active) {
-            send_mouse(MOUSEEVENTF_LEFTUP);
-        }
+        clicker_stop();
         KillTimer(hwnd, ID_TIMER);
         UnregisterHotKey(hwnd, HOTKEY_ID_TOGGLE);
         save_settings();
