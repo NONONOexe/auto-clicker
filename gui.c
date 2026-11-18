@@ -4,6 +4,7 @@
 #include "click.h"
 #include "lang.h"
 #include "settings.h"
+#include "hotkey.h"
 #include <commctrl.h>
 #include <stdlib.h>
 #include <windows.h>
@@ -13,7 +14,6 @@
 #define MUTEX_NAME          L"Local\\AutoClickerMutex"
 #define ID_BTN_TOGGLE       1
 #define ID_TIMER            1
-#define ID_HOTKEY_TOGGLE    1
 #define ID_CHK_HOLD         2
 #define ID_BTN_LANG         3
 #define ID_HOTKEY_EDIT      4
@@ -33,9 +33,6 @@ static BOOL g_running = FALSE;
 static BOOL g_hold_active = FALSE;
 
 static HFONT g_font = NULL;
-
-static UINT g_hotkey_mod = 0; // MOD_ALT / MOD_CONTROL / MOD_SHIFT
-static UINT g_hotkey_vk = VK_F6;
 
 static void apply_language() {
     SetWindowText(g_btn, g_running ? tr(S_BTN_STOP) : tr(S_BTN_START));
@@ -72,8 +69,8 @@ static void save_settings(void) {
     int ms = read_interval();
     save_interval(ms < MIN_MS ? DEFAULT_MS : ms);
     save_hold(read_hold());
-    save_hotkey_vk(g_hotkey_vk);
-    save_hotkey_mod(g_hotkey_mod);
+    save_hotkey_vk(hotkey_get_vk());
+    save_hotkey_mod(hotkey_get_mod());
 }
 
 static void toggle(HWND hwnd) {
@@ -104,51 +101,6 @@ static void toggle(HWND hwnd) {
         EnableWindow(g_chk, FALSE);
     }
     g_running = !g_running;
-}
-
-static BOOL register_hotkey(HWND hwnd, UINT mod, UINT vk) {
-    UnregisterHotKey(hwnd, ID_HOTKEY_TOGGLE);
-
-    if (RegisterHotKey(hwnd, ID_HOTKEY_TOGGLE, mod | MOD_NOREPEAT, vk)) {
-        g_hotkey_mod = mod;
-        g_hotkey_vk = vk;
-        return TRUE;
-    }
-
-    RegisterHotKey(hwnd, ID_HOTKEY_TOGGLE, g_hotkey_mod | MOD_NOREPEAT, g_hotkey_vk);
-    return FALSE;
-}
-
-static UINT hotkeyf_to_mod(BYTE hotkeyf) {
-    UINT mod = 0;
-
-    if (hotkeyf & HOTKEYF_SHIFT) {
-        mod |= MOD_SHIFT;
-    }
-    if (hotkeyf & HOTKEYF_CONTROL) {
-        mod |= MOD_CONTROL;
-    }
-    if (hotkeyf & HOTKEYF_ALT) {
-        mod |= MOD_ALT;
-    }
-
-    return mod;
-}
-
-static BYTE mod_to_hotkeyf(UINT mod) {
-    BYTE hotkeyf = 0;
-
-    if (mod & MOD_SHIFT) {
-        hotkeyf |= HOTKEYF_SHIFT;
-    }
-    if (mod & MOD_CONTROL) {
-        hotkeyf |= HOTKEYF_CONTROL;
-    }
-    if (mod & MOD_ALT) {
-        hotkeyf |= HOTKEYF_ALT;
-    }
-
-    return hotkeyf;
 }
 
 static HWND create_child(HWND parent, const wchar_t *cls, const wchar_t *text, DWORD style, int x,
@@ -186,7 +138,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 
         UINT mod = load_hotkey_mod();
         UINT vk = load_hotkey_vk();
-        if (!register_hotkey(hwnd, mod, vk)) {
+        if (!hotkey_register(hwnd, mod, vk)) {
             MessageBox(hwnd, tr(S_ERR_HOTKEY_ALREADY_REGISTERED), tr(S_TITLE_ERROR), MB_OK);
         }
 
@@ -213,7 +165,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             LRESULT r = SendMessage(g_hotkey_edit, HKM_GETHOTKEY, 0, 0);
             UINT mod = hotkeyf_to_mod(HIBYTE(r));
             UINT vk = LOBYTE(r);
-            if (!register_hotkey(hwnd, mod, vk)) {
+            if (!hotkey_register(hwnd, mod, vk)) {
                 MessageBox(hwnd, tr(S_ERR_HOTKEY_ALREADY_REGISTERED), tr(S_TITLE_ERROR), MB_OK);
             }
         }
@@ -225,7 +177,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         }
         return 0;
     case WM_HOTKEY:
-        if (wp == ID_HOTKEY_TOGGLE) {
+        if (wp == HOTKEY_ID_TOGGLE) {
             toggle(hwnd);
         }
         return 0;
@@ -234,7 +186,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             send_mouse(MOUSEEVENTF_LEFTUP);
         }
         KillTimer(hwnd, ID_TIMER);
-        UnregisterHotKey(hwnd, ID_HOTKEY_TOGGLE);
+        UnregisterHotKey(hwnd, HOTKEY_ID_TOGGLE);
         save_settings();
         if (g_font != NULL) {
             DeleteObject(g_font);
