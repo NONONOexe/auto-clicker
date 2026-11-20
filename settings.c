@@ -2,6 +2,7 @@
 #define _UNICODE
 
 #include "settings.h"
+#include "hotkey.h"
 #include <wchar.h>
 
 #define INI_SECTION_SETTINGS L"Settings"
@@ -22,8 +23,8 @@ static void get_ini_path(wchar_t *out, size_t len) {
     }
 }
 
-static void read_str(const wchar_t *section, const wchar_t *key, const wchar_t *def,
-wchar_t *out, DWORD len) {
+static void read_str(const wchar_t *section, const wchar_t *key,
+                     const wchar_t *def, wchar_t *out, DWORD len) {
     wchar_t path[MAX_PATH];
     get_ini_path(path, MAX_PATH);
     GetPrivateProfileString(section, key, def, out, len, path);
@@ -41,7 +42,8 @@ static UINT read_uint(const wchar_t *section, const wchar_t *key, UINT def) {
     return GetPrivateProfileInt(section, key, def, path);
 }
 
-static void write_str(const wchar_t *section, const wchar_t *key, const wchar_t *value) {
+static void write_str(const wchar_t *section, const wchar_t *key,
+                      const wchar_t *value) {
     wchar_t path[MAX_PATH];
     get_ini_path(path, MAX_PATH);
     WritePrivateProfileString(section, key, value, path);
@@ -93,18 +95,16 @@ void save_hold(BOOL hold) {
     write_int(INI_SECTION_SETTINGS, INI_KEY_HOLD, hold ? 1 : 0);
 }
 
-UINT load_hotkey_vk(void) {
-    return read_uint(INI_SECTION_HOTKEY, INI_KEY_HOTKEY_VK, DEFAULT_HOTKEY_VK);
+Hotkey load_hotkey(void) {
+    return (Hotkey){
+        .vk =
+            read_uint(INI_SECTION_HOTKEY, INI_KEY_HOTKEY_VK, DEFAULT_HOTKEY_VK),
+        .mod = read_uint(INI_SECTION_HOTKEY, INI_KEY_HOTKEY_MOD,
+                         DEFAULT_HOTKEY_MOD),
+    };
 }
 
-void save_hotkey_vk(UINT vk) {
-    write_uint(INI_SECTION_HOTKEY, INI_KEY_HOTKEY_VK, vk);
-}
-
-UINT load_hotkey_mod(void) {
-    return read_uint(INI_SECTION_HOTKEY, INI_KEY_HOTKEY_MOD, DEFAULT_HOTKEY_MOD);
-}
-
-void save_hotkey_mod(UINT mod) {
-    write_uint(INI_SECTION_HOTKEY, INI_KEY_HOTKEY_MOD, mod);
+void save_hotkey(Hotkey hk) {
+    write_uint(INI_SECTION_HOTKEY, INI_KEY_HOTKEY_VK, hk.vk);
+    write_uint(INI_SECTION_HOTKEY, INI_KEY_HOTKEY_MOD, hk.mod);
 }

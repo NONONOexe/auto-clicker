@@ -2,6 +2,7 @@
 #define SETTINGS_H
 
 #include "lang.h"
+#include "hotkey.h"
 #include <windows.h>
 
 #define DEFAULT_MS         1000
@@ -16,9 +17,7 @@ int load_interval(void);
 void save_interval(int ms);
 BOOL load_hold(void);
 void save_hold(BOOL hold);
-UINT load_hotkey_vk(void);
-void save_hotkey_vk(UINT vk);
-UINT load_hotkey_mod(void);
-void save_hotkey_mod(UINT mod);
+Hotkey load_hotkey(void);
+void save_hotkey(Hotkey hk);
 
 #endif

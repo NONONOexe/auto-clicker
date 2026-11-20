@@ -4,7 +4,7 @@ LDFLAGS  = -mwindows -lcomctl32
 
 TARGET   = autoclicker.exe
 
-SRCS     = gui.c click.c lang.c settings.c hotkey.c clicker.c
+SRCS     = gui.c click.c lang.c settings.c hotkey.c clicker.c ui.c
 BUILDDIR = build
 OBJS     = $(SRCS:%.c=$(BUILDDIR)/%.o)
 DEPS     = $(OBJS:.o=.d)

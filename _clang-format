@@ -2,4 +2,6 @@ BasedOnStyle: LLVM
 IndentWidth: 4
 AlignAfterOpenBracket: Align
 AlignConsecutiveMacros: Consecutive
-ColumnLimit: 100
+ColumnLimit: 80
+AllowShortFunctionsOnASingleLine: None
+InsertBraces: true
