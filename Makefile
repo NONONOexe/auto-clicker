@@ -1,6 +1,6 @@
 CC       = gcc
 WINDRES  = windres
-CFLAGS   = -Wall
+CFLAGS   = -Wall -D_WIN32_WINNT=0x0A00
 LDFLAGS  = -mwindows -lcomctl32
 
 TARGET   = autoclicker.exe

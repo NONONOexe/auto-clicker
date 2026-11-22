@@ -1,13 +1,13 @@
 #define UNICODE
 #define _UNICODE
 
+#include "capture.h"
 #include "click.h"
 #include "clicker.h"
 #include "hotkey.h"
 #include "lang.h"
 #include "settings.h"
 #include "ui.h"
-#include "capture.h"
 #include <windows.h>
 
 #define CLASS_NAME L"AutoClickerWnd"
@@ -151,11 +151,14 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR cmd, int show) {
     wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
     RegisterClass(&wc);
 
+    UINT dpi = GetDpiForSystem();
+
     HWND hwnd =
         CreateWindow(CLASS_NAME, APP_TITLE,                                  //
                      WS_OVERLAPPEDWINDOW & ~WS_MAXIMIZEBOX & ~WS_THICKFRAME, //
                      CW_USEDEFAULT, CW_USEDEFAULT,                           //
-                     320, 300, NULL, NULL, hInst, NULL);
+                     MulDiv(320, dpi, 96), MulDiv(300, dpi, 96),             //
+                     NULL, NULL, hInst, NULL);
     ShowWindow(hwnd, show);
 
     MSG m;

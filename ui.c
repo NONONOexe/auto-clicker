@@ -28,14 +28,19 @@ static HWND btn_hotkey_apply;
 static ClickTarget current_target;
 
 static HFONT font = NULL;
+static UINT dpi = 96;
 
 static BOOL created = FALSE;
 
+static int scale(int px) {
+    return MulDiv(px, (int)dpi, 96);
+}
+
 static HWND create_child(HWND parent, const wchar_t *cls, const wchar_t *text,
                          DWORD style, int x, int y, int w, int h, int id) {
-    return CreateWindow(cls, text, WS_CHILD | WS_VISIBLE | style, x, y, w, h,
-                        parent, (HMENU)(INT_PTR)id, GetModuleHandle(NULL),
-                        NULL);
+    return CreateWindow(cls, text, WS_CHILD | WS_VISIBLE | style, scale(x),
+                        scale(y), scale(w), scale(h), parent,
+                        (HMENU)(INT_PTR)id, GetModuleHandle(NULL), NULL);
 }
 
 static HFONT create_ui_font(void) {
@@ -103,6 +108,8 @@ static void refresh_target_label(void) {
 }
 
 BOOL ui_create(HWND parent, const UiInit *init) {
+    dpi = GetDpiForWindow(parent);
+
     INITCOMMONCONTROLSEX icc = {sizeof(icc), ICC_HOTKEY_CLASS};
     InitCommonControlsEx(&icc);
 
@@ -121,8 +128,9 @@ BOOL ui_create(HWND parent, const UiInit *init) {
                             BS_PUSHBUTTON, 150, 20, 130, 30, ID_BTN_LANG);
 
     label_target = create_child(parent, L"STATIC", L"", 0, 20, 136, 130, 20, 0);
-    btn_capture = create_child(parent, L"BUTTON", tr(S_BTN_CAPTURE), BS_PUSHBUTTON,
-                               155, 130, 125, 28, ID_BTN_CAPTURE);
+    btn_capture =
+        create_child(parent, L"BUTTON", tr(S_BTN_CAPTURE), BS_PUSHBUTTON, 155,
+                     130, 125, 28, ID_BTN_CAPTURE);
 
     label_hotkey = create_child(parent, L"STATIC", tr(S_LABEL_HOTKEY), 0, 20,
                                 175, 200, 20, 0);
@@ -203,7 +211,7 @@ void ui_apply_language(BOOL running) {
     SetWindowText(btn_toggle, running ? tr(S_BTN_STOP) : tr(S_BTN_START));
     SetWindowText(label_interval, tr(S_LABEL_INTERVAL));
     SetWindowText(chk_hold, tr(S_LABEL_HOLD));
-    
+
     SetWindowText(btn_capture, tr(S_BTN_CAPTURE));
     refresh_target_label();
 
