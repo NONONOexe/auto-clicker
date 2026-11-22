@@ -22,6 +22,14 @@ const wchar_t *STR[LANG_COUNT][S_COUNT] = {
             [S_ERR_HOTKEY_ALREADY_REGISTERED] =
                 L"Hotkey could not be registered.",
             [S_ERR_UI_CREATE_FAILED] = L"Failed to start the application.",
+            [S_BTN_CAPTURE] = L"Capture",
+            [S_LABEL_TARGET_FMT] = L"Target: %ls",
+            [S_TARGET_WAITING] = L"Press a mouse button or key...",
+            [S_MOUSE_LEFT] = L"Left button",
+            [S_MOUSE_RIGHT] = L"Right button",
+            [S_MOUSE_MIDDLE] = L"Middle button",
+            [S_MOUSE_X1] = L"Side button 1",
+            [S_MOUSE_X2] = L"Side button 2",
         },
     [LANG_JA] =
         {
@@ -39,6 +47,14 @@ const wchar_t *STR[LANG_COUNT][S_COUNT] = {
                 L"ホットキーを設定できませんでした。",
             [S_ERR_UI_CREATE_FAILED] =
                 L"アプリケーションを起動できませんでした。",
+            [S_BTN_CAPTURE] = L"キャプチャ",
+            [S_LABEL_TARGET_FMT] = L"対象: %ls",
+            [S_TARGET_WAITING] = L"マウスのボタンまたはキーを押してください...",
+            [S_MOUSE_LEFT] = L"左ボタン",
+            [S_MOUSE_RIGHT] = L"右ボタン",
+            [S_MOUSE_MIDDLE] = L"ミドルボタン",
+            [S_MOUSE_X1] = L"サイドボタン1",
+            [S_MOUSE_X2] = L"サイドボタン2",
         },
 };
 

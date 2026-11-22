@@ -7,6 +7,7 @@
 #include "lang.h"
 #include "settings.h"
 #include "ui.h"
+#include "capture.h"
 #include <windows.h>
 
 #define CLASS_NAME L"AutoClickerWnd"
@@ -19,6 +20,7 @@ static void save_settings(void) {
     int ms = ui_read_interval();
     save_interval(ms < MIN_MS ? DEFAULT_MS : ms);
     save_hold(ui_read_hold());
+    save_target(ui_read_target());
     save_hotkey(hotkey_get());
 }
 
@@ -35,7 +37,8 @@ static void toggle(HWND hwnd) {
     } else {
         int ms = ui_read_interval();
         BOOL hold = ui_read_hold();
-        switch (clicker_start(ms, hold)) {
+        ClickTarget target = ui_read_target();
+        switch (clicker_start(ms, hold, target)) {
         case CLICKER_START_OK_TIMER:
             SetTimer(hwnd, ID_TIMER, ms, NULL);
             break;
@@ -51,12 +54,21 @@ static void toggle(HWND hwnd) {
 }
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
+    if (capture_is_active()) {
+        ClickTarget t;
+        if (capture_translate(msg, wp, lp, &t)) {
+            capture_end();
+            ui_set_target(&t);
+            return (msg == WM_XBUTTONDOWN) ? TRUE : 0;
+        }
+    }
     switch (msg) {
     case WM_CREATE: {
         UiInit init = {
             .interval = load_interval(),
             .hold = load_hold(),
             .hotkey = load_hotkey(),
+            .target = load_target(),
         };
         if (!ui_create(hwnd, &init)) {
             MessageBox(hwnd, tr(S_ERR_UI_CREATE_FAILED), tr(S_TITLE_ERROR),
@@ -83,11 +95,14 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
                            tr(S_TITLE_ERROR), MB_OK);
             }
         }
-
+        if (LOWORD(wp) == ID_BTN_CAPTURE) {
+            capture_begin(hwnd);
+            ui_set_capturing(TRUE);
+        }
         return 0;
     case WM_TIMER:
         if (wp == ID_TIMER) {
-            do_click();
+            clicker_tick();
         }
         return 0;
     case WM_HOTKEY:
@@ -95,6 +110,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             toggle(hwnd);
         }
         return 0;
+    case WM_ACTIVATE:
+        if (LOWORD(wp) == WA_INACTIVE && capture_is_active()) {
+            capture_end();
+            ui_set_capturing(FALSE);
+        }
+        break;
     case WM_DESTROY:
         clicker_stop();
         KillTimer(hwnd, ID_TIMER);
@@ -134,7 +155,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR cmd, int show) {
         CreateWindow(CLASS_NAME, APP_TITLE,                                  //
                      WS_OVERLAPPEDWINDOW & ~WS_MAXIMIZEBOX & ~WS_THICKFRAME, //
                      CW_USEDEFAULT, CW_USEDEFAULT,                           //
-                     320, 240, NULL, NULL, hInst, NULL);
+                     320, 300, NULL, NULL, hInst, NULL);
     ShowWindow(hwnd, show);
 
     MSG m;

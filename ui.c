@@ -18,9 +18,14 @@ static HWND chk_hold;
 
 static HWND btn_lang;
 
+static HWND label_target;
+static HWND btn_capture;
+
 static HWND label_hotkey;
 static HWND hotkey_ctrl;
 static HWND btn_hotkey_apply;
+
+static ClickTarget current_target;
 
 static HFONT font = NULL;
 
@@ -75,6 +80,28 @@ static BYTE mod_to_hotkeyf(UINT mod) {
     return hotkeyf;
 }
 
+static void format_target(const ClickTarget *target, wchar_t *buf, int len) {
+    if (target->kind == CLICK_TARGET_KEY) {
+        UINT sc = MapVirtualKey(target->vk, MAPVK_VK_TO_VSC);
+        if (GetKeyNameText((LONG)(sc << 16), buf, len) == 0) {
+            _snwprintf(buf, len, L"VK 0x%02X", target->vk);
+        }
+        return;
+    }
+    static const int mouse_str[] = {
+        S_MOUSE_LEFT, S_MOUSE_RIGHT, S_MOUSE_MIDDLE, S_MOUSE_X1, S_MOUSE_X2,
+    };
+    wcsncpy(buf, tr(mouse_str[target->button]), len - 1);
+    buf[len - 1] = L'\0';
+}
+
+static void refresh_target_label(void) {
+    wchar_t name[32], text[64];
+    format_target(&current_target, name, 32);
+    _snwprintf(text, 64, tr(S_LABEL_TARGET_FMT), name);
+    SetWindowText(label_target, text);
+}
+
 BOOL ui_create(HWND parent, const UiInit *init) {
     INITCOMMONCONTROLSEX icc = {sizeof(icc), ICC_HOTKEY_CLASS};
     InitCommonControlsEx(&icc);
@@ -93,17 +120,21 @@ BOOL ui_create(HWND parent, const UiInit *init) {
     btn_lang = create_child(parent, L"BUTTON", L"English / 日本語",
                             BS_PUSHBUTTON, 150, 20, 130, 30, ID_BTN_LANG);
 
+    label_target = create_child(parent, L"STATIC", L"", 0, 20, 136, 130, 20, 0);
+    btn_capture = create_child(parent, L"BUTTON", tr(S_BTN_CAPTURE), BS_PUSHBUTTON,
+                               155, 130, 125, 28, ID_BTN_CAPTURE);
+
     label_hotkey = create_child(parent, L"STATIC", tr(S_LABEL_HOTKEY), 0, 20,
-                                135, 200, 20, 0);
-    hotkey_ctrl = create_child(parent, HOTKEY_CLASS, L"", WS_TABSTOP, 20, 155,
+                                175, 200, 20, 0);
+    hotkey_ctrl = create_child(parent, HOTKEY_CLASS, L"", WS_TABSTOP, 20, 195,
                                200, 30, ID_HOTKEY_EDIT);
 
     btn_hotkey_apply =
         create_child(parent, L"BUTTON", tr(S_BTN_HOTKEY_APPLY), BS_PUSHBUTTON,
-                     230, 155, 50, 30, ID_BTN_HOTKEY_APPLY);
+                     230, 195, 50, 30, ID_BTN_HOTKEY_APPLY);
 
-    HWND ctrls[] = {btn_toggle,  label_interval,  edit_interval,
-                    chk_hold,    btn_lang,        label_hotkey,
+    HWND ctrls[] = {btn_toggle,  label_interval,  edit_interval, chk_hold,
+                    btn_lang,    label_target,    btn_capture,   label_hotkey,
                     hotkey_ctrl, btn_hotkey_apply};
     for (size_t i = 0; i < sizeof(ctrls) / sizeof(ctrls[0]); i++) {
         if (!ctrls[i]) {
@@ -118,6 +149,9 @@ BOOL ui_create(HWND parent, const UiInit *init) {
 
     font = create_ui_font();
     EnumChildWindows(parent, set_font_proc, (LPARAM)font);
+
+    current_target = init->target;
+    refresh_target_label();
 
     created = TRUE;
     return TRUE;
@@ -142,16 +176,37 @@ Hotkey ui_read_hotkey(void) {
     return (Hotkey){.mod = hotkeyf_to_mod(HIBYTE(r)), .vk = LOBYTE(r)};
 }
 
+ClickTarget ui_read_target(void) {
+    return current_target;
+}
+
 void ui_set_running(BOOL running) {
     SetWindowText(btn_toggle, tr(running ? S_BTN_STOP : S_BTN_START));
     EnableWindow(edit_interval, !running);
     EnableWindow(chk_hold, !running);
 }
 
+void ui_set_target(const ClickTarget *t) {
+    current_target = *t;
+    refresh_target_label();
+}
+
+void ui_set_capturing(BOOL capturing) {
+    if (capturing) {
+        SetWindowText(label_target, tr(S_TARGET_WAITING));
+    } else {
+        refresh_target_label();
+    }
+}
+
 void ui_apply_language(BOOL running) {
     SetWindowText(btn_toggle, running ? tr(S_BTN_STOP) : tr(S_BTN_START));
     SetWindowText(label_interval, tr(S_LABEL_INTERVAL));
     SetWindowText(chk_hold, tr(S_LABEL_HOLD));
+    
+    SetWindowText(btn_capture, tr(S_BTN_CAPTURE));
+    refresh_target_label();
+
     SetWindowText(label_hotkey, tr(S_LABEL_HOTKEY));
     SetWindowText(btn_hotkey_apply, tr(S_BTN_HOTKEY_APPLY));
 }

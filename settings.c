@@ -15,6 +15,11 @@
 #define INI_KEY_HOTKEY_MOD L"Mod"
 #define BUF_LEN            16
 
+#define INI_SECTION_TARGET    L"Target"
+#define INI_KEY_TARGET_KIND   L"Kind"
+#define INI_KEY_TARGET_BUTTON L"Button"
+#define INI_KEY_TARGET_VK     L"VK"
+
 static void get_ini_path(wchar_t *out, size_t len) {
     GetModuleFileName(NULL, out, (DWORD)len);
     wchar_t *dot = wcsrchr(out, L'.');
@@ -107,4 +112,33 @@ Hotkey load_hotkey(void) {
 void save_hotkey(Hotkey hk) {
     write_uint(INI_SECTION_HOTKEY, INI_KEY_HOTKEY_VK, hk.vk);
     write_uint(INI_SECTION_HOTKEY, INI_KEY_HOTKEY_MOD, hk.mod);
+}
+
+ClickTarget load_target(void) {
+    ClickTarget target = {
+        .kind = read_int(INI_SECTION_TARGET, INI_KEY_TARGET_KIND,
+                         DEFAULT_TARGET_KIND),
+        .button = read_int(INI_SECTION_TARGET, INI_KEY_TARGET_BUTTON,
+                           DEFAULT_TARGET_BUTTON),
+        .vk = (WORD)read_uint(INI_SECTION_TARGET, INI_KEY_TARGET_VK,
+                              DEFAULT_TARGET_VK),
+    };
+
+    if (target.kind != CLICK_TARGET_MOUSE && target.kind != CLICK_TARGET_KEY) {
+        target.kind = DEFAULT_TARGET_KIND;
+    }
+    if (target.button < MOUSE_BTN_LEFT || target.button > MOUSE_BTN_X2) {
+        target.button = DEFAULT_TARGET_BUTTON;
+    }
+    if (target.kind == CLICK_TARGET_KEY && (target.vk == 0 || target.vk > 255)) {
+        target.kind = DEFAULT_TARGET_KIND;
+        target.button = DEFAULT_TARGET_BUTTON;
+    }
+    return target;
+}
+
+void save_target(ClickTarget target) {
+    write_uint(INI_SECTION_TARGET, INI_KEY_TARGET_KIND, target.kind);
+    write_uint(INI_SECTION_TARGET, INI_KEY_TARGET_BUTTON, target.button);
+    write_uint(INI_SECTION_TARGET, INI_KEY_TARGET_VK, target.vk);
 }
