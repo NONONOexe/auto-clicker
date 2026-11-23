@@ -8,12 +8,18 @@
 #include "lang.h"
 #include "settings.h"
 #include "ui.h"
+#include <dwmapi.h>
 #include <windows.h>
 
 #define CLASS_NAME L"AutoClickerWnd"
 #define APP_TITLE  L"Auto Clicker"
 #define MUTEX_NAME L"Local\\AutoClickerMutex"
 #define ID_TIMER   1
+
+#define WINDOW_BG_COLOR RGB(0xFF, 0xFF, 0xFF)
+#define CAPTION_COLOR   RGB(0xE3, 0xE3, 0xE3)
+
+static HBRUSH bg_brush;
 
 static void save_settings(void) {
     save_language(g_lang);
@@ -64,6 +70,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     }
     switch (msg) {
     case WM_CREATE: {
+        COLORREF caption = CAPTION_COLOR;
+        DwmSetWindowAttribute(hwnd, DWMWA_CAPTION_COLOR, &caption,
+                              sizeof(caption));
+
         UiInit init = {
             .interval = load_interval(),
             .hold = load_hold(),
@@ -126,6 +136,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         ui_destroy();
         PostQuitMessage(0);
         return 0;
+    case WM_CTLCOLORSTATIC:
+        HDC hdc = (HDC)wp;
+        SetBkColor(hdc, WINDOW_BG_COLOR);
+        return (LRESULT)bg_brush;
+    case WM_CTLCOLORBTN:
+        return (LRESULT)bg_brush;
     }
     return DefWindowProc(hwnd, msg, wp, lp);
 }
@@ -143,12 +159,14 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR cmd, int show) {
         return 0;
     }
 
+    bg_brush = CreateSolidBrush(WINDOW_BG_COLOR);
+
     WNDCLASS wc = {0};
     wc.lpfnWndProc = WndProc;
     wc.hInstance = hInst;
     wc.lpszClassName = CLASS_NAME;
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
-    wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+    wc.hbrBackground = bg_brush;
     RegisterClass(&wc);
 
     UINT dpi = GetDpiForSystem();
