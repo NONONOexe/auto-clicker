@@ -32,6 +32,30 @@ static UINT dpi = 96;
 
 static BOOL created = FALSE;
 
+typedef struct {
+    const wchar_t *cls;
+    int text_id;
+    DWORD style;
+    int x, y, w, h;
+    int id;
+    HWND *hwnd;
+} ControlSpec;
+
+// clang-format off
+static const ControlSpec specs[] = {
+    {L"BUTTON",    S_BTN_START,        BS_PUSHBUTTON,          20,  20, 120, 30, ID_BTN_TOGGLE,       &btn_toggle},
+    {L"STATIC",    S_LABEL_INTERVAL,   0,                      20,  65, 200, 20, 0,                   &label_interval},
+    {L"EDIT",      S_NONE,             WS_BORDER | ES_NUMBER, 225,  62,  55, 24, 0,                   &edit_interval},
+    {L"BUTTON",    S_LABEL_HOLD,       BS_AUTOCHECKBOX,        20, 100, 200, 20, ID_CHK_HOLD,         &chk_hold},
+    {L"BUTTON",    S_BTN_LANG,         BS_PUSHBUTTON,         150,  20, 130, 30, ID_BTN_LANG,         &btn_lang},
+    {L"STATIC",    S_NONE,             0,                      20, 136, 130, 20, 0,                   &label_target},
+    {L"BUTTON",    S_BTN_CAPTURE,      BS_PUSHBUTTON,         155, 130, 125, 28, ID_BTN_CAPTURE,      &btn_capture},
+    {L"STATIC",    S_LABEL_HOTKEY,     0,                      20, 175, 200, 20, 0,                   &label_hotkey},
+    {HOTKEY_CLASS, S_NONE,             0,                      20, 195, 200, 30, ID_HOTKEY_EDIT,      &hotkey_ctrl},
+    {L"BUTTON",    S_BTN_HOTKEY_APPLY, 0,                     230, 195,  50, 30, ID_BTN_HOTKEY_APPLY, &btn_hotkey_apply},
+};
+// clang-format on
+
 static int scale(int px) {
     return MulDiv(px, (int)dpi, 96);
 }
@@ -113,43 +137,19 @@ BOOL ui_create(HWND parent, const UiInit *init) {
     INITCOMMONCONTROLSEX icc = {sizeof(icc), ICC_HOTKEY_CLASS};
     InitCommonControlsEx(&icc);
 
-    btn_toggle = create_child(parent, L"BUTTON", tr(S_BTN_START), BS_PUSHBUTTON,
-                              20, 20, 120, 30, ID_BTN_TOGGLE);
-    label_interval = create_child(parent, L"STATIC", tr(S_LABEL_INTERVAL), 0,
-                                  20, 65, 200, 20, 0);
-    wchar_t buf[BUF_LEN];
-    _snwprintf(buf, BUF_LEN, L"%d", init->interval);
-    edit_interval = create_child(parent, L"EDIT", buf, WS_BORDER | ES_NUMBER,
-                                 225, 62, 55, 24, 0);
-    chk_hold = create_child(parent, L"BUTTON", tr(S_LABEL_HOLD),
-                            BS_AUTOCHECKBOX, 20, 100, 200, 20, ID_CHK_HOLD);
-
-    btn_lang = create_child(parent, L"BUTTON", L"English / 日本語",
-                            BS_PUSHBUTTON, 150, 20, 130, 30, ID_BTN_LANG);
-
-    label_target = create_child(parent, L"STATIC", L"", 0, 20, 136, 130, 20, 0);
-    btn_capture =
-        create_child(parent, L"BUTTON", tr(S_BTN_CAPTURE), BS_PUSHBUTTON, 155,
-                     130, 125, 28, ID_BTN_CAPTURE);
-
-    label_hotkey = create_child(parent, L"STATIC", tr(S_LABEL_HOTKEY), 0, 20,
-                                175, 200, 20, 0);
-    hotkey_ctrl = create_child(parent, HOTKEY_CLASS, L"", WS_TABSTOP, 20, 195,
-                               200, 30, ID_HOTKEY_EDIT);
-
-    btn_hotkey_apply =
-        create_child(parent, L"BUTTON", tr(S_BTN_HOTKEY_APPLY), BS_PUSHBUTTON,
-                     230, 195, 50, 30, ID_BTN_HOTKEY_APPLY);
-
-    HWND ctrls[] = {btn_toggle,  label_interval,  edit_interval, chk_hold,
-                    btn_lang,    label_target,    btn_capture,   label_hotkey,
-                    hotkey_ctrl, btn_hotkey_apply};
-    for (size_t i = 0; i < sizeof(ctrls) / sizeof(ctrls[0]); i++) {
-        if (!ctrls[i]) {
+    for (size_t i = 0; i < sizeof(specs) / sizeof(specs[0]); i++) {
+        const ControlSpec *s = &specs[i];
+        const wchar_t *text = (s->text_id == S_NONE) ? L"" : tr(s->text_id);
+        *s->hwnd = create_child(parent, s->cls, text, s->style, s->x, s->y,
+                                s->w, s->h, s->id);
+        if (*s->hwnd == NULL) {
             return FALSE;
         }
     }
 
+    wchar_t buf[BUF_LEN];
+    _snwprintf(buf, BUF_LEN, L"%d", init->interval);
+    SetWindowText(edit_interval, buf);
     SendMessage(chk_hold, BM_SETCHECK, init->hold ? BST_CHECKED : BST_UNCHECKED,
                 0);
     SendMessage(hotkey_ctrl, HKM_SETHOTKEY,
@@ -201,7 +201,7 @@ void ui_set_target(const ClickTarget *t) {
 
 void ui_set_capturing(BOOL capturing) {
     if (capturing) {
-        SetWindowText(label_target, tr(S_TARGET_WAITING));
+        SetWindowText(label_target, tr(S_LABEL_TARGET_WAITING));
     } else {
         refresh_target_label();
     }
