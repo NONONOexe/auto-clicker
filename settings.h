@@ -15,6 +15,14 @@
 #define DEFAULT_TARGET_BUTTON MOUSE_BTN_LEFT
 #define DEFAULT_TARGET_VK     0
 
+typedef struct {
+    Lang lang;
+    int interval;
+    BOOL hold;
+    Hotkey hotkey;
+    ClickTarget target;
+} Settings;
+
 BOOL load_language(Lang *out);
 void save_language(Lang lang);
 int load_interval(void);
@@ -25,5 +33,7 @@ Hotkey load_hotkey(void);
 void save_hotkey(Hotkey hk);
 ClickTarget load_target(void);
 void save_target(ClickTarget target);
+Settings settings_load(void);
+void settings_save(const Settings *s);
 
 #endif

@@ -142,3 +142,23 @@ void save_target(ClickTarget target) {
     write_uint(INI_SECTION_TARGET, INI_KEY_TARGET_BUTTON, target.button);
     write_uint(INI_SECTION_TARGET, INI_KEY_TARGET_VK, target.vk);
 }
+
+Settings settings_load(void) {
+    Settings s;
+    if (!load_language(&s.lang)) {
+        s.lang = detect_language();
+    }
+    s.interval = load_interval();
+    s.hold = load_hold();
+    s.hotkey = load_hotkey();
+    s.target = load_target();
+    return s;
+}
+
+void settings_save(const Settings *s) {
+    save_language(s->lang);
+    save_interval(s->interval);
+    save_hold(s->hold);
+    save_hotkey(s->hotkey);
+    save_target(s->target);
+}
